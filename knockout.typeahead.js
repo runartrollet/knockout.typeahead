@@ -17,6 +17,7 @@ ko.bindingHandlers.typeahead = {
 		var mapping = ko.unwrap(allBindings().mappingFunction);
 		var onSelect = allBindings.get("onSelectFunction");
 		var displayedProperty = ko.unwrap(allBindings().displayKey);
+		var minLength = ko.unwrap(allBindings().minLength);
 		var value = allBindings.get("value");
 
 		var url = ko.unwrap(valueAccessor());
@@ -71,7 +72,8 @@ ko.bindingHandlers.typeahead = {
 		$(element)
 			.typeahead({
 				hint: true,
-				highlight: true
+				highlight: true,
+				minLength: minLength
 			}, typeaheadOpts)
 		.on("typeahead:selected typeahead:autocompleted", function (e, suggestion) {
 			if (onSelect) {
