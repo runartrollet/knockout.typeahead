@@ -17,6 +17,8 @@ ko.bindingHandlers.typeahead = {
 		var mapping = ko.unwrap(allBindings().mappingFunction);
 		var onSelect = allBindings.get("onSelectFunction");
 		var displayedProperty = ko.unwrap(allBindings().displayKey);
+		var localSuggestions = ko.unwrap(allBindings().localSuggestions || false);
+		var user_typeahead_options = ko.unwrap(allBindings().typeaheadOpts) || {};
 		var value = allBindings.get("value");
 
 		var url = ko.unwrap(valueAccessor());
@@ -24,26 +26,41 @@ ko.bindingHandlers.typeahead = {
 		var auth = (allBindings.has("authToken")) ? {
 			"Authorization": "Bearer " + ko.unwrap(allBindings().authToken)
 		} : {};
-		var remoteData = {
-			url: url,
-			ajax: {
-				headers: auth
-			}
-		};
-		if (remoteFilter) {
-			remoteData.filter = remoteFilter;
-		};
 
 		var resultsLimit = allBindings.get("limit") || 10;
 
-		var suggestions = new Bloodhound({
-			datumTokenizer: function (token) {
-				return Bloodhound.tokenizers.whitespace(token);
-			},
+		var bloodhound_options = {
 			queryTokenizer: Bloodhound.tokenizers.whitespace,
-			remote: remoteData,
 			limit: resultsLimit
-		});
+		}
+
+		if (localSuggestions != false) {
+			bloodhound_options.datumTokenizer = function (token) {
+				var t = token
+				if (Object.prototype.toString.call(t) == "[object Object]") {
+					t = token[displayedProperty]
+				}
+					return Bloodhound.tokenizers.whitespace(t);
+				}
+				bloodhound_options.local = url
+		} else {
+			bloodhound_options.datumTokenizer = function (token) {
+					return Bloodhound.tokenizers.whitespace(token);
+				}
+			bloodhound_options.remote = {
+				url: url,
+				ajax: {
+					headers: auth
+				}
+			};
+			if (remoteFilter) {
+				bloodhound_options.remote.filter = remoteFilter;
+			};
+
+		}
+
+		var suggestions = new Bloodhound(bloodhound_options);
+
 
 		suggestions.initialize();
 
@@ -69,10 +86,10 @@ ko.bindingHandlers.typeahead = {
 		}
 
 		$(element)
-			.typeahead({
+			.typeahead(jQuery.extend({
 				hint: true,
-				highlight: true
-			}, typeaheadOpts)
+				highlight: true,
+			}, user_typeahead_options), typeaheadOpts)
 		.on("typeahead:selected typeahead:autocompleted", function (e, suggestion) {
 			if (onSelect) {
 				onSelect(value, suggestion, e)
